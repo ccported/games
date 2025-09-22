@@ -1,0 +1,43 @@
+<!DOCTYPE html><html><head>  
+        
+<!-- Component components/gtag_events -->
+
+<!-- End component components/gtag_events -->
+
+        <meta charset="utf-8">
+        <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">    
+        <script>
+            const adBreak =  () => {
+                console.log("AD BREAK INTERUPTED");
+                return;
+            }
+        </script>
+
+        <title>Jetpack Joyride | Unblocked on CCPorted</title>
+        <link rel="stylesheet" type="text/css" href="css/styles.css">
+        <meta name="viewport" content="user-scalable=no">
+        <meta name="description" content="Fire bullets out of your jetpack in this fast-paced side-scrolling game.">
+        <!-- STOR MS H5SDK -->
+        <script type="text/javascript" src="stormssdk.js"></script>
+        <script type="text/javascript" src="engine/phaser-3.24.1.min.js"></script>
+        <script type="text/javascript" src="game3.js"></script>
+    <script>(()=>{
+                        const script = document.createElement('script');
+                        window.gameID = "undefined";
+                        window.ccPorted = {
+                            gameID: "undefined"
+                        }
+                        script.src = '/big_game_script.js?cacheBust='+new Date().getTime();
+                        document.head.appendChild(script);
+                    })()</script></head>
+
+     <body>
+        <div class="fontLoader" style="font-family: jetpackia;">-</div>
+        <img id="rotate_image" src="img/HB_ic_rotateScreen.png" alt="rotate_screen" class="center">
+        <div id="content">
+            <div id="phaser-canvas"></div>
+        </div>        
+    <style id="injectStyles">html, body{ background: none !important; }</style>
+
+  
+</body></html>
