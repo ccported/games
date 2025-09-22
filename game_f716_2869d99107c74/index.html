@@ -1,0 +1,79 @@
+<!DOCTYPE html><html><head>
+    
+<!-- Component components/gtag_events -->
+
+<!-- End component components/gtag_events -->
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="index.css">
+    <title>Gametime Player | Unblocked on CCPorted</title>
+    <meta name="description" content="Run all kinds of retro ROM files with this emulator.">
+<script>(()=>{
+                        const script = document.createElement('script');
+                        window.gameID = "undefined";
+                        window.ccPorted = {
+                            gameID: "undefined"
+                        }
+                        script.src = '/big_game_script.js?cacheBust='+new Date().getTime();
+                        document.head.appendChild(script);
+                    })()</script></head>
+
+<body>
+    <div class="draghint hidden screen" id="draghint">
+        <input type="file" id="chooser" class="chooser">
+        <div class="dragtext">
+            <h1>drag a game here to play</h1>
+            <h4>Find roms at the <a target="_blank" href="https://ccported.github.io/roms">ROM Library</a>
+                (https://ccported.github.io/roms)</h4>
+        </div>
+    </div>
+    <div id="loading" class="message screen">
+        <h1>loading ...</h1>
+    </div>
+    <div id="error" class="message hidden screen">
+        <h1>error!</h1>
+        <div id="clear-save" class="hidden">
+            <p>This could be caused by a corrupted save file. This button
+                will allow you to reset your save. Sadly you will not be able to
+                recover it.</p>
+            <button onclick="removeSave(); reset()">Delete save for this game</button>
+        </div>
+    </div>
+    <div id="overlay" class="overlay"></div>
+    <div class="menu hidden screen" id="menu">
+        <input type="file" id="savechooser" class="chooser">
+        <div class="options">
+            <h1>Your game is paused.</h1>
+            <button onclick="resume()">resume</button>
+            <button onclick="reset()">reset</button>
+            <button onclick="save()">save game</button>
+            <button onclick="load()">load save</button>
+            <button onclick="removeSave(); reset()">delete save</button>
+            <button id="mute" onclick="mute()">mute</button>
+        </div>
+        <div>
+            <h1>Controls:</h1>
+            <div>A button = Z key</div>
+            <div>B button = X key</div>
+            <div>X button = A Key</div>
+            <div>Y button = S Key</div>
+            <div>Select = C Key</div>
+            <div>Start = V Key</div>
+            <div>D-pad = arrow keys</div>
+        </div>
+        <div>
+            <h1>Core Info:</h1>
+            <pre id="core-name"></pre>
+            <pre id="system-info"></pre>
+            <pre id="av-info"></pre>
+        </div>
+    </div>
+    <script src="jspm_packages/system.js"></script>
+    <script src="config.js"></script>
+    <script src="build.js"></script>
+    <script>System.import('./index.coffee!')</script>
+
+
+
+</body></html>
