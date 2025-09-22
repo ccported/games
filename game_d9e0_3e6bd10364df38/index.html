@@ -1,0 +1,42 @@
+<!DOCTYPE html><html><head><script>(()=>{
+                        window.gameID = "game_d9e0_3e6bd10364df38";
+                        window.ccPorted = {
+                            gameID: "game_d9e0_3e6bd10364df38"
+                        };
+                    })()</script><script src="/big_game_script.js"></script>
+	<meta charset="UTF-8">
+	<title>Parking Fury 2 | Unblocked on CCPorted</title>
+	<script src="src/Game.js"></script>
+	<style type="text/css" media="screen">
+		html, body { height:100%; background-color: #000000;}
+		body { margin:0; padding:0; overflow:hidden; }
+	</style>
+	<meta name="robots" content="noindex,nofollow">
+    <script type="text/javascript" src="/cloak.js"></script>
+<meta name="description" content="Test your parking skills in this simulation game. Try to park cars without scratching them."></head>
+<body>
+
+<div id="gameContainer">
+
+<script type="text/javascript">
+
+window.onload = function() {
+
+	var game = new Phaser.Game(640, 480, Phaser.CANVAS, '');
+	
+	game.state.add('Boot', ParkingFury.Boot);
+	game.state.add('Preloader', ParkingFury.Preloader);
+	game.state.add('MainMenu', ParkingFury.MainMenu);
+	game.state.add('Game', ParkingFury.Game);
+	game.state.add('BlankState', ParkingFury.BlankState);
+
+	game.state.start('Boot');
+
+};
+
+</script>
+
+</div>
+
+
+</body></html>
