@@ -1,0 +1,253 @@
+<!DOCTYPE html><html lang="en-us"><head>
+    
+<!-- Component components/gtag_events -->
+
+<!-- End component components/gtag_events -->
+
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Getaway Shootout | Unblocked on CCPorted</title>
+    <meta name="description" content="Shoot and jump your way through the map to get to the objective before your friends.">
+  <script>(()=>{
+                        const script = document.createElement('script');
+                        window.gameID = "undefined";
+                        window.ccPorted = {
+                            gameID: "undefined"
+                        }
+                        script.src = '/big_game_script.js?cacheBust='+new Date().getTime();
+                        document.head.appendChild(script);
+                    })()</script></head>
+
+  <body>
+    <div id="unity-container" class="unity-desktop">
+      <canvas id="unity-canvas" width="960" height="600" tabindex="-1"></canvas>
+    </div>
+    <style>
+      body,
+      html {
+        margin: 0;
+        overflow: hidden;
+      }
+
+      canvas {
+        width: 100vw !important;
+        height: 100vh !important;
+      }
+      #loading-chunk {
+        position: absolute;
+        top: 50vh;
+        left: 50vw;
+        color: white;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        width: 0;
+        height: 0;
+        z-index:99999;
+      }
+      .loading-parent{
+        width: 500px;
+        background-color: #ccc;
+        height: 20px;
+        display: block;
+      }
+      
+      .loading-bar{
+        background-color: dodgerblue;
+      }
+    </style>
+    <div id="loading-chunk">
+      <div class="loading-parent">
+        <div class="loading-bar">&nbsp;</div>
+      </div>
+    </div>
+    <script>
+      const container = document.querySelector("#unity-container");
+      const canvas = document.querySelector("#unity-canvas");
+    </script>
+
+    <script>
+      // Hacky solution for managing audio volume of the game player dynamically
+      window.audioStream = [];
+      window.AudioContextOrigin =
+        window.AudioContext || window.webkitAudioContext;
+      window.fakeDestinations = [];
+      window.AudioContext = function () {
+        const ac = new window.AudioContextOrigin();
+        const dest = ac.createMediaStreamDestination();
+        const baseMerge = ac.createGain();
+
+        const fakeDestination = ac.createGain();
+        window.fakeDestinations.push(fakeDestination);
+        fakeDestination.gain.value = 1;
+        fakeDestination.connect(ac.destination);
+
+        window.audioStream.push(dest.stream);
+        baseMerge.connect(dest);
+        ac.createGainOrigin = ac.createGain;
+
+        ac.createGain = function () {
+          const gain = ac.createGainOrigin();
+          gain.connect(baseMerge);
+          gain.connectOrigin = gain.connect;
+          gain.connect = function () {
+            return gain.connectOrigin(fakeDestination);
+          };
+          return gain;
+        };
+        return ac;
+      };
+    </script>
+
+    <script>
+      // Patch canvas requestPointerLock
+      canvas._requestPointerLock = canvas.requestPointerLock;
+      canvas.requestPointerLock = async () => {
+        try {
+          return await canvas._requestPointerLock({
+            unadjustedMovement: true,
+          });
+        } catch (e) {
+          /* swallow pointer lock errors */
+        }
+      };
+
+      if (navigator && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        const meta = document.createElement("meta");
+        meta.name = "viewport";
+        meta.content =
+          "width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes";
+        document.getElementsByTagName("head")[0].appendChild(meta);
+        container.className = "unity-mobile";
+        canvas.className = "unity-mobile";
+      } else {
+        canvas.style.width = "960px";
+        canvas.style.height = "600px";
+      }
+
+      let gameInstance;
+
+      const bundleFormat = "1";
+
+      const legacyGameProperties = {
+        productVersion: "1.0",
+        graphicsAPI: ["WebGL 1.0"],
+        webglContextAttributes: { preserveDrawingBuffer: false },
+        splashScreenStyle: "Dark",
+        backgroundColor: "#231F20",
+        developmentBuild: false,
+        multithreading: false,
+        unityVersion: "2019.3.15f1",
+        Module: { splashScreenStyle: "Dark", preRun: [] },
+      };
+
+      let config;
+      let loaderUrl;
+      let configBlobUrl;
+      let encodedConfig;
+      let configBlob;
+
+      loaderUrl = "resources/loader.js";
+
+      config = {
+        dataUrl: "resources/game.data",
+        wasmFrameworkUrl: "",
+        asmCodeUrl: "resources/asm.code",
+        asmMemoryUrl: "resources/asm.memory",
+        asmFrameworkUrl: "resources/asm.framework",
+        streamingAssetsUrl: "",
+        companyName: "ccported.github.io",
+        productName: "Getaway Shootout",
+        ...legacyGameProperties,
+      };
+
+      encodedConfig = JSON.stringify(config);
+      configBlob = new Blob([encodedConfig], { type: "application/json" });
+      configBlobUrl = URL.createObjectURL(configBlob);
+
+      const loadingBar = document.querySelector(".loading-bar")
+      const loadingChunk = document.getElementById("loading-chunk");
+
+      function instantiateUsingUnityLoader() {
+        const res = UnityLoader.instantiate("unity-container", configBlobUrl, {
+          onProgress: (instance, progress) => {
+            console.log("P",progress)
+            loadingBar.style.width = ((progress + 0.1) * 100).toFixed("1") + "%";
+            if(progress >= 0.9){
+              loadingChunk.remove();
+            }
+          },
+          Module: {
+            resolveBuildUrl: (e) => {
+              return e;
+            },
+            locateFile: (e) => {
+              if (e === "build.wasm") {
+                return config["wasmCodeUrl"];
+              }
+
+              return e;
+            },
+          },
+        });
+      }
+
+      function instantiateUsingCreateUnityInstance() {
+        createUnityInstance(canvas, config, (progress) => {
+          sendParentMessage("progress", { progress: progress });
+        })
+          .then((instance) => {
+            gameInstance = instance;
+            sendParentMessage("ready", {});
+          })
+          .catch((error) => {
+            sendParentMessage("error", { error: error });
+          });
+      }
+
+      function patchUnityLoader(loaderSource) {
+        // Older versions of the loader will only identify and respect compression if the file ends in .unityweb
+        // Because this format has changed, we need to patch the old loaders to always respect compression
+
+        if (
+          loaderSource.indexOf('e.wasmCodeUrl.endsWith(".unityweb")') !== -1
+        ) {
+          return loaderSource.replace(
+            'e.wasmCodeUrl.endsWith(".unityweb")',
+            '(e.wasmCodeUrl.endsWith(".unityweb") || true)'
+          );
+        }
+        return loaderSource;
+      }
+
+      async function getPatchedUnityLoaderUrl() {
+        const loaderSourceResponse = await fetch(loaderUrl);
+        const loaderSource = await loaderSourceResponse.text();
+        const patchedLoaderSource = patchUnityLoader(loaderSource);
+        const patchedLoaderBlob = new Blob([patchedLoaderSource], {
+          type: "application/javascript",
+        });
+        const patchedLoaderUrl = URL.createObjectURL(patchedLoaderBlob);
+
+        return patchedLoaderUrl;
+      }
+
+      async function instantiateUnityLoader() {
+        const script = document.createElement("script");
+        script.src = await getPatchedUnityLoaderUrl();
+
+        script.onload = () => {
+          instantiateUsingUnityLoader();
+        };
+        document.body.appendChild(script);
+      }
+
+      addEventListener("DOMContentLoaded", () => {
+        instantiateUnityLoader();
+      });
+    </script>
+  
+
+</body></html>
