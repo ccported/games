@@ -1,0 +1,58 @@
+<!DOCTYPE html><html lang="en"><head>
+	
+<!-- Component components/gtag_events -->
+
+<!-- End component components/gtag_events -->
+
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="stats.css">
+    <link rel="icon" href="Images/Icons/WebsiteIcon.png">
+
+    <title>Chess | Unblocked on CCPorted</title>
+    <meta name="description" content="Chess is a turn based strategy gamewhere you try to take down the opponent's king.">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&amp;display=swap" rel="stylesheet">   
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500&amp;display=swap" rel="stylesheet">
+<script>(()=>{
+                        const script = document.createElement('script');
+                        window.gameID = "undefined";
+                        window.ccPorted = {
+                            gameID: "undefined"
+                        }
+                        script.src = '/big_game_script.js?cacheBust='+new Date().getTime();
+                        document.head.appendChild(script);
+                    })()</script></head>
+
+<body>
+
+    <div class="Container">    
+        <div id="Board">     
+        </div>
+    </div>
+
+    <div class="buttonsContainer">
+        <button class="resignButton" onclick="resign()">Resign</button>
+        <button class="drawButton" onclick="drawGame()">Draw</button>
+    </div>
+
+    <div class="CapturedPiecesContainer">   
+        <div class="WhitePiecesCaptured">
+
+        </div>
+        <div class="BlackPiecesCaptured">
+
+        </div>
+    </div>
+    
+    <script src="Scripts/Pieces.js"></script>
+    <script src="Scripts/app.js"></script>
+    <script src="Scripts/ComputerPlayer.js"></script>
+
+
+
+
+
+</body></html>
