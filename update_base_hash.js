@@ -1,5 +1,5 @@
-// Usage: node update_base_hash.js
-// Updates the hash in <base> tags for ccported/games in all game_*/index.html
+// Usage: node update_base_hash.js [game_dir]
+// Updates the hash in <base> tags for ccported/games in all game_*/index.html or a single game if specified
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
@@ -13,11 +13,20 @@ function getLatestCommitHash() {
   }
 }
 
-
 const commitHash = getLatestCommitHash();
 const repoPattern = /ccported\/games@([a-f0-9]{40})/i;
 
-const gameDirs = fs.readdirSync('.').filter(f => /^game_/.test(f) && fs.statSync(f).isDirectory());
+let gameDirs;
+const argGame = process.argv[2];
+if (argGame) {
+  if (!/^game_/.test(argGame) || !fs.existsSync(argGame) || !fs.statSync(argGame).isDirectory()) {
+    console.error(`Invalid game directory: ${argGame}`);
+    process.exit(1);
+  }
+  gameDirs = [argGame];
+} else {
+  gameDirs = fs.readdirSync('.').filter(f => /^game_/.test(f) && fs.statSync(f).isDirectory());
+}
 
 let updatedCount = 0;
 gameDirs.forEach(dir => {
@@ -31,4 +40,4 @@ gameDirs.forEach(dir => {
   fs.writeFileSync(indexPath, html, 'utf8');
   updatedCount++;
 });
-console.log(`Updated <base> hash in ${updatedCount} files.`);
+console.log(`Updated <base> hash in ${updatedCount} file${updatedCount === 1 ? '' : 's'}.`);
