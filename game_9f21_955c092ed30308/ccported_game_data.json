@@ -1,0 +1,12 @@
+{
+    "name": "Agar Lite",
+    "description": "Eat the dots and grow bigger! Avoid the big dots!",
+    "thumb_path": "/thumb.jpg",
+    "is_proxy": false,
+    "proxy_path": "",
+    "tags": [
+        "action",
+        "io",
+        "skill"
+    ]
+}
