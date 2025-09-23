@@ -1,9 +1,50 @@
-<!DOCTYPE html><html><head><script>(()=>{
+<!DOCTYPE html><html><head>
+    <base href="https://cdn.jsdelivr.net/gh/ccported/games@c511baeb6639c3a210f166b0e47bd7d2f7d5dde9/game_d9e0_3e6bd10364df38/">
+<script>
+(function() {
+  var base = document.querySelector('base');
+  var CDN_BASE = base ? base.href : '';
+  if (!CDN_BASE) return;
+
+  // Helper to check if a URL is relative
+  function isRelative(url) {
+    return typeof url === 'string' && !/^(?:[a-z]+:)?\/\//i.test(url) && url[0] !== '/';
+  }
+
+  // Patch fetch
+  var origFetch = window.fetch;
+  window.fetch = function(input, init) {
+    if (typeof input === 'string' && isRelative(input)) {
+      input = CDN_BASE + input;
+    } else if (input && input.url && isRelative(input.url)) {
+      input = new Request(CDN_BASE + input.url, input);
+    }
+    return origFetch.call(this, input, init);
+  };
+
+  // Patch XMLHttpRequest
+  var OrigXHR = window.XMLHttpRequest;
+  function PatchedXHR() {
+    var xhr = new OrigXHR();
+    var origOpen = xhr.open;
+    xhr.open = function(method, url) {
+      if (isRelative(url)) {
+        url = CDN_BASE + url;
+      }
+      return origOpen.apply(this, arguments);
+    };
+    return xhr;
+  }
+  PatchedXHR.prototype = OrigXHR.prototype;
+  window.XMLHttpRequest = PatchedXHR;
+})();
+
+</script><script>(()=>{
                         window.gameID = "game_d9e0_3e6bd10364df38";
                         window.ccPorted = {
                             gameID: "game_d9e0_3e6bd10364df38"
                         };
-                    })()</script><script src="/big_game_script.js"></script>
+                    })()</script><script src="https://cdn.jsdelivr.net/gh/ccported/games@c511baeb6639c3a210f166b0e47bd7d2f7d5dde9/big_game_script.js"></script>
 	<meta charset="UTF-8">
 	<title>Parking Fury 2 | Unblocked on CCPorted</title>
 	<script src="src/Game.js"></script>
@@ -12,7 +53,7 @@
 		body { margin:0; padding:0; overflow:hidden; }
 	</style>
 	<meta name="robots" content="noindex,nofollow">
-    <script type="text/javascript" src="/cloak.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/ccported/games@c511baeb6639c3a210f166b0e47bd7d2f7d5dde9/cloak.js"></script>
 <meta name="description" content="Test your parking skills in this simulation game. Try to park cars without scratching them."></head>
 <body>
 

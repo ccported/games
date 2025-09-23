@@ -1,4 +1,45 @@
 <!DOCTYPE html><html><head>
+    <base href="https://cdn.jsdelivr.net/gh/ccported/games@c511baeb6639c3a210f166b0e47bd7d2f7d5dde9/game_c3c8_4ae3b0a66addc/">
+<script>
+(function() {
+  var base = document.querySelector('base');
+  var CDN_BASE = base ? base.href : '';
+  if (!CDN_BASE) return;
+
+  // Helper to check if a URL is relative
+  function isRelative(url) {
+    return typeof url === 'string' && !/^(?:[a-z]+:)?\/\//i.test(url) && url[0] !== '/';
+  }
+
+  // Patch fetch
+  var origFetch = window.fetch;
+  window.fetch = function(input, init) {
+    if (typeof input === 'string' && isRelative(input)) {
+      input = CDN_BASE + input;
+    } else if (input && input.url && isRelative(input.url)) {
+      input = new Request(CDN_BASE + input.url, input);
+    }
+    return origFetch.call(this, input, init);
+  };
+
+  // Patch XMLHttpRequest
+  var OrigXHR = window.XMLHttpRequest;
+  function PatchedXHR() {
+    var xhr = new OrigXHR();
+    var origOpen = xhr.open;
+    xhr.open = function(method, url) {
+      if (isRelative(url)) {
+        url = CDN_BASE + url;
+      }
+      return origOpen.apply(this, arguments);
+    };
+    return xhr;
+  }
+  PatchedXHR.prototype = OrigXHR.prototype;
+  window.XMLHttpRequest = PatchedXHR;
+})();
+
+</script>
     
 <!-- Component components/gtag_events -->
 
@@ -7,7 +48,7 @@
 
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width">
-    <link rel="stylesheet" href="/flash/styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ccported/games@c511baeb6639c3a210f166b0e47bd7d2f7d5dde9/flash/styles.css">
     <title>Toss The Turtle | Unblocked on CCPorted</title>
     <meta name="description" content="Toss the Turtle is a fun and addictive game where you launch a turtle as far as you can using cannons, bombs, and jetpacks.">
 <script>(()=>{
@@ -27,11 +68,11 @@
             <div id="gameContainer"></div>
             <div id="fullScreenBar">
                 <h3 id="gameFName"></h3>
-                <div id="fullscreen"><img src="/assets/images/fullscreen.png"></div>
+                <div id="fullscreen"><img src="https://cdn.jsdelivr.net/gh/ccported/games@c511baeb6639c3a210f166b0e47bd7d2f7d5dde9/assets/images/fullscreen.png"></div>
             </div>
         </div>
     </div>
-    <script src="/flash/em.js" data-swf-file-src="toss_the_turtle.swf" data-fname="Toss The Turtle">
+    <script src="https://cdn.jsdelivr.net/gh/ccported/games@c511baeb6639c3a210f166b0e47bd7d2f7d5dde9/flash/em.js" data-swf-file-src="toss_the_turtle.swf" data-fname="Toss The Turtle">
     </script>
 
 
