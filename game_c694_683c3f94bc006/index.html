@@ -2,6 +2,59 @@
 <html>
 
 <head>
+    <base href="https://cdn.jsdelivr.net/gh/ccported/games@090475ee32a506fec2179699bd0f9612007b2a5b/game_c694_683c3f94bc006/">
+<script>
+(function() {
+  var base = document.querySelector('base');
+  var CDN_BASE = base ? base.href : '';
+  if (!CDN_BASE) return;
+
+  // Helper to check if a URL is relative
+  function isRelative(url) {
+    return typeof url === 'string' && !/^(?:[a-z]+:)?\/\//i.test(url) && url[0] !== '/';
+  }
+
+  // Patch fetch
+  var origFetch = window.fetch;
+  window.fetch = function(input, init) {
+    if (typeof input === 'string' && isRelative(input)) {
+      input = CDN_BASE + input;
+    } else if (input && input.url && isRelative(input.url)) {
+      input = new Request(CDN_BASE + input.url, input);
+    }
+    return origFetch.call(this, input, init);
+  };
+
+  // Patch XMLHttpRequest
+  var OrigXHR = window.XMLHttpRequest;
+  function PatchedXHR() {
+    var xhr = new OrigXHR();
+    var origOpen = xhr.open;
+    xhr.open = function(method, url) {
+      if (isRelative(url)) {
+        url = CDN_BASE + url;
+      }
+      return origOpen.apply(this, arguments);
+    };
+    return xhr;
+  }
+  PatchedXHR.prototype = OrigXHR.prototype;
+  window.XMLHttpRequest = PatchedXHR;
+
+
+  // const originalAppendChild = Element.prototype.appendChild;
+  // Element.prototype.appendChild = function(child) {
+  //   const src = child.src || (child.getAttribute ? child.getAttribute('src') : null);
+  //   const href = child.href || (child.getAttribute ? child.getAttribute('href') : null);
+  //   if (isRelative(src)) {
+  //     child.src = CDN_BASE + src;
+  //   } else if (isRelative(href)) {
+  //     child.href = CDN_BASE + href;
+  //   }
+  // }
+})();
+
+</script>
 	<meta charset="UTF-8">
 	<title>Boxing Random</title>
 	<meta name="viewport"
