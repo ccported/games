@@ -2,6 +2,47 @@
 
 <html lang="en">
 <head>
+    <base href="https://cdn.jsdelivr.net/gh/ccported/games@83ca7d3f973af583c6b902af63e6e3a5e23ab034/game_ea03_df7f93211fe368/">
+<script>
+(function() {
+  var base = document.querySelector('base');
+  var CDN_BASE = base ? base.href : '';
+  if (!CDN_BASE) return;
+
+  // Helper to check if a URL is relative
+  function isRelative(url) {
+    return typeof url === 'string' && !/^(?:[a-z]+:)?\/\//i.test(url) && url[0] !== '/';
+  }
+
+  // Patch fetch
+  var origFetch = window.fetch;
+  window.fetch = function(input, init) {
+    if (typeof input === 'string' && isRelative(input)) {
+      input = CDN_BASE + input;
+    } else if (input && input.url && isRelative(input.url)) {
+      input = new Request(CDN_BASE + input.url, input);
+    }
+    return origFetch.call(this, input, init);
+  };
+
+  // Patch XMLHttpRequest
+  var OrigXHR = window.XMLHttpRequest;
+  function PatchedXHR() {
+    var xhr = new OrigXHR();
+    var origOpen = xhr.open;
+    xhr.open = function(method, url) {
+      if (isRelative(url)) {
+        url = CDN_BASE + url;
+      }
+      return origOpen.apply(this, arguments);
+    };
+    return xhr;
+  }
+  PatchedXHR.prototype = OrigXHR.prototype;
+  window.XMLHttpRequest = PatchedXHR;
+})();
+
+</script>
 	<meta charset="utf-8">
 	
 	<title>Friday Night Funkin'</title>
@@ -10,7 +51,7 @@
 	<meta name="apple-mobile-web-app-capable" content="yes">
 	
 	
-	<link rel="shortcut icon" type="image/png" href="/favicon.png">
+	<link rel="shortcut icon" type="image/png" href="https://cdn.jsdelivr.net/gh/ccported/games@83ca7d3f973af583c6b902af63e6e3a5e23ab034/favicon.png">
 	
 	
 	<script type="text/javascript" src="Funkin.js"></script>
