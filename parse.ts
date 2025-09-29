@@ -185,7 +185,7 @@ function createFileChunks(files: { path: string, size: number, relativePath: str
 
 async function handleGame(gamePath: string) {
 
-    if (gamePath.includes('node_modules') || path.basename(gamePath).startsWith('.')) {
+    if (gamePath.includes('node_modules') || path.basename(gamePath).startsWith('.') || gamePath === 'zips') {
         console.log(`Skipping: ${gamePath}`);
         return;
     }
