@@ -1,44 +1,291 @@
 <!DOCTYPE html><html><head>
-    <base href="https://cdn.jsdelivr.net/gh/ccported/games@c511baeb6639c3a210f166b0e47bd7d2f7d5dde9/game_259b_1f24244bc9cfe8/">
+    <base href="https://cdn.jsdelivr.net/gh/ccported/games@084cbf48f9e7ed08674566e2dc68f469cfdc4e28/game_259b_1f24244bc9cfe8/">
 <script>
-(function() {
-  var base = document.querySelector('base');
-  var CDN_BASE = base ? base.href : '';
-  if (!CDN_BASE) return;
+    (function () {
+        // V2
+        var base = document.querySelector('base');
+        var CDN_BASE = base ? base.href : '';
+        if (!CDN_BASE) {
+            console.log('CDN_BASE not found.');
+            return;
+        }
+        console.log('CDN_BASE:', CDN_BASE);
 
-  // Helper to check if a URL is relative
-  function isRelative(url) {
-    return typeof url === 'string' && !/^(?:[a-z]+:)?\/\//i.test(url) && url[0] !== '/';
-  }
+        // Helper to check if a URL is relative
+        function isRelative(url) {
+            const result = typeof url === 'string' && !/^(?:[a-z]+:)?\/\//i.test(url) && url[0] !== '/';
+            console.log('isRelative:', url, result);
+            return result;
+        }
 
-  // Patch fetch
-  var origFetch = window.fetch;
-  window.fetch = function(input, init) {
-    if (typeof input === 'string' && isRelative(input)) {
-      input = CDN_BASE + input;
-    } else if (input && input.url && isRelative(input.url)) {
-      input = new Request(CDN_BASE + input.url, input);
-    }
-    return origFetch.call(this, input, init);
-  };
+        // Patch fetch
+        var origFetch = window.fetch;
+        window.fetch = async function (input, init) {
+            console.log('fetch called with:', input, init);
+            if (typeof input === 'string' && isRelative(input)) {
+                input = CDN_BASE + input;
+                console.log('fetch input patched to:', input);
+            } else if (input && input.url && isRelative(input.url)) {
+                input = new Request(CDN_BASE + input.url, input);
+                console.log('fetch Request input patched to:', input.url);
+            }
+            const response = origFetch.call(this, input, init);
+            const res = await response;
 
-  // Patch XMLHttpRequest
-  var OrigXHR = window.XMLHttpRequest;
-  function PatchedXHR() {
-    var xhr = new OrigXHR();
-    var origOpen = xhr.open;
-    xhr.open = function(method, url) {
-      if (isRelative(url)) {
-        url = CDN_BASE + url;
-      }
-      return origOpen.apply(this, arguments);
-    };
-    return xhr;
-  }
-  PatchedXHR.prototype = OrigXHR.prototype;
-  window.XMLHttpRequest = PatchedXHR;
-})();
+            console.log('fetch response status:', res.status);
 
+            if (res.status === 403) {
+                const body = await res.text();
+                const toLargeText = `File size exceeded the configured limit of 20 MB`;
+                console.log('fetch 403 body:', body);
+                if (body.includes(toLargeText)) {
+                    console.log('fetch: file too large, merging parts for', input instanceof Request ? input.url : input);
+                    try {
+                        return await merge(input instanceof Request ? input.url : input);
+                    } catch (mergeError) {
+                        console.error('fetch merge failed:', mergeError);
+                        return res; // Return the original 403 response
+                    }
+                } else {
+                    console.log('fetch: other 403 error');
+                    return res;
+                }
+            }
+            return res;
+        };
+
+        // Patch XMLHttpRequest
+        var OrigXHR = window.XMLHttpRequest;
+        function PatchedXHR() {
+            var xhr = new OrigXHR();
+            var origOpen = xhr.open;
+            var origSend = xhr.send;
+
+            var _url;
+            var _originalResponseType = '';
+            var _responseTypeSet = false;
+
+            xhr.open = function (method, url) {
+                console.log('XHR open:', method, url);
+                if (isRelative(url)) {
+                    url = CDN_BASE + url;
+                    console.log('XHR url patched to:', url);
+                }
+                _url = url;
+                return origOpen.apply(xhr, arguments);
+            };
+
+            // Override responseType property
+            Object.defineProperty(xhr, 'responseType', {
+                get: function() {
+                    return _originalResponseType;
+                },
+                set: function(value) {
+                    _originalResponseType = value;
+                    _responseTypeSet = true;
+                    // Set it on the actual XHR immediately for normal requests
+                    try {
+                        Object.getPrototypeOf(xhr).constructor.prototype.__lookupSetter__('responseType').call(xhr, value);
+                    } catch (e) {
+                        // Fallback if direct prototype access fails
+                        xhr.__proto__.responseType = value;
+                    }
+                },
+                configurable: true
+            });
+
+            xhr.send = function () {
+                console.log('XHR send with responseType:', _originalResponseType);
+                
+                var origOnReadyStateChange = xhr.onreadystatechange;
+                var origOnLoad = xhr.onload;
+                var origOnError = xhr.onerror;
+                
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        console.log('XHR readyState 4, status:', xhr.status, 'responseType:', _originalResponseType);
+                        if (xhr.status === 403) {
+                            console.log('XHR: 403 error detected, checking if file is too large');
+                            
+                            // Prevent original callbacks from firing during our check
+                            xhr.onreadystatechange = null;
+                            xhr.onload = null;
+                            xhr.onerror = null;
+                            
+                            // Make a separate fetch request to check the error message using original fetch
+                            origFetch(_url).then(response => {
+                                if (response.status === 403) {
+                                    return response.text().then(body => {
+                                        const toLargeText = `File size exceeded the configured limit of 20 MB`;
+                                        console.log('XHR 403 body check:', body.includes(toLargeText));
+                                        
+                                        if (body.includes(toLargeText)) {
+                                            console.log('XHR: file too large, merging parts for', _url);
+                                            return merge(_url).then(mergedRes => {
+                                                console.log('Merge complete, setting response');
+                                                
+                                                if (_originalResponseType === 'arraybuffer') {
+                                                    return mergedRes.arrayBuffer().then(buffer => {
+                                                        // Mock successful response
+                                                        Object.defineProperty(xhr, 'status', { 
+                                                            value: 200, 
+                                                            configurable: true,
+                                                            writable: true 
+                                                        });
+                                                        Object.defineProperty(xhr, 'response', { 
+                                                            value: buffer, 
+                                                            configurable: true,
+                                                            writable: true 
+                                                        });
+                                                        Object.defineProperty(xhr, 'readyState', { 
+                                                            value: 4, 
+                                                            configurable: true,
+                                                            writable: true 
+                                                        });
+                                                        
+                                                        // Restore and trigger callbacks
+                                                        xhr.onreadystatechange = origOnReadyStateChange;
+                                                        xhr.onload = origOnLoad;
+                                                        xhr.onerror = origOnError;
+                                                        
+                                                        if (origOnLoad) {
+                                                            setTimeout(() => origOnLoad.call(xhr), 0);
+                                                        }
+                                                        if (origOnReadyStateChange) {
+                                                            setTimeout(() => origOnReadyStateChange.call(xhr), 0);
+                                                        }
+                                                    });
+                                                } else {
+                                                    return mergedRes.text().then(text => {
+                                                        Object.defineProperty(xhr, 'status', { 
+                                                            value: 200, 
+                                                            configurable: true,
+                                                            writable: true 
+                                                        });
+                                                        Object.defineProperty(xhr, 'response', { 
+                                                            value: text, 
+                                                            configurable: true,
+                                                            writable: true 
+                                                        });
+                                                        Object.defineProperty(xhr, 'responseText', { 
+                                                            value: text, 
+                                                            configurable: true,
+                                                            writable: true 
+                                                        });
+                                                        Object.defineProperty(xhr, 'readyState', { 
+                                                            value: 4, 
+                                                            configurable: true,
+                                                            writable: true 
+                                                        });
+                                                        
+                                                        // Restore and trigger callbacks
+                                                        xhr.onreadystatechange = origOnReadyStateChange;
+                                                        xhr.onload = origOnLoad;
+                                                        xhr.onerror = origOnError;
+                                                        
+                                                        if (origOnLoad) {
+                                                            setTimeout(() => origOnLoad.call(xhr), 0);
+                                                        }
+                                                        if (origOnReadyStateChange) {
+                                                            setTimeout(() => origOnReadyStateChange.call(xhr), 0);
+                                                        }
+                                                    });
+                                                }
+                                            }).catch(mergeError => {
+                                                console.error('Merge failed:', mergeError);
+                                                // Restore callbacks and let the original 403 error through
+                                                xhr.onreadystatechange = origOnReadyStateChange;
+                                                xhr.onload = origOnLoad;
+                                                xhr.onerror = origOnError;
+                                                if (origOnReadyStateChange) {
+                                                    setTimeout(() => origOnReadyStateChange.call(xhr), 0);
+                                                }
+                                            });
+                                        } else {
+                                            // Not a file size error, restore original callbacks and let it fail normally
+                                            xhr.onreadystatechange = origOnReadyStateChange;
+                                            xhr.onload = origOnLoad;
+                                            xhr.onerror = origOnError;
+                                            if (origOnReadyStateChange) {
+                                                setTimeout(() => origOnReadyStateChange.call(xhr), 0);
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    // Shouldn't happen, but restore callbacks
+                                    xhr.onreadystatechange = origOnReadyStateChange;
+                                    xhr.onload = origOnLoad;
+                                    xhr.onerror = origOnError;
+                                    if (origOnReadyStateChange) {
+                                        setTimeout(() => origOnReadyStateChange.call(xhr), 0);
+                                    }
+                                }
+                            }).catch(error => {
+                                console.error('Error checking 403 response:', error);
+                                // Restore callbacks and trigger error
+                                xhr.onreadystatechange = origOnReadyStateChange;
+                                xhr.onload = origOnLoad;
+                                xhr.onerror = origOnError;
+                                if (origOnError) {
+                                    setTimeout(() => origOnError.call(xhr), 0);
+                                }
+                            });
+                            
+                            return; // Don't call original callback yet
+                        }
+                    }
+                    
+                    if (origOnReadyStateChange) origOnReadyStateChange.call(xhr);
+                };
+                
+                return origSend.apply(xhr, arguments);
+            };
+
+            return xhr;
+        }
+        PatchedXHR.prototype = OrigXHR.prototype;
+        window.XMLHttpRequest = PatchedXHR;
+
+        async function merge(filename) {
+            console.log('merge called for:', filename);
+            let partIndex = 1;
+            let dataBuffers = [];
+            while (true) {
+                const partFilename = `${filename}.part${partIndex}`;
+                try {
+                    console.log('Fetching part:', partFilename);
+                    // Use original fetch to avoid recursive patching
+                    const partRes = await origFetch(partFilename);
+                    if (!partRes.ok) {
+                        console.log('No more parts found at:', partFilename);
+                        break;
+                    }
+                    const partData = await partRes.arrayBuffer();
+                    dataBuffers.push(partData);
+                    partIndex++;
+                } catch (error) {
+                    console.error(`Error fetching ${partFilename}:`, error);
+                    break;
+                }
+            }
+            
+            if (dataBuffers.length === 0) {
+                throw new Error('No parts found for merging');
+            }
+            
+            console.log('Total parts fetched:', dataBuffers.length);
+            const totalSize = dataBuffers.reduce((acc, buffer) => acc + buffer.byteLength, 0);
+            const combinedData = new Uint8Array(totalSize);
+
+            let offset = 0;
+            for (const buffer of dataBuffers) {
+                combinedData.set(new Uint8Array(buffer), offset);
+                offset += buffer.byteLength;
+            }
+            console.log('merge: combined data length:', combinedData.length);
+            return new Response(combinedData);
+        }
+    })();
 </script><script>(()=>{
                         window.gameID = "game_259b_1f24244bc9cfe8";
                         window.ccPorted = {
@@ -63,7 +310,7 @@
             </div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/gh/ccported/games@c511baeb6639c3a210f166b0e47bd7d2f7d5dde9/flash/em.js" data-swf-file-src="the-binding-of-isaac:-wrath-of-the-lamb-eternal-edition.swf" data-fname="The Binding Of Isaac: Wrath of the Lamb Eternal Edition">
+    <script src="https://cdn.jsdelivr.net/gh/ccported/games@c511baeb6639c3a210f166b0e47bd7d2f7d5dde9/flash/em.js" data-swf-file-src="the-binding-of-isaac-wrath-of-the-lamb-eternal-edition.swf" data-fname="The Binding Of Isaac: Wrath of the Lamb Eternal Edition">
     </script>
 
 
