@@ -19,7 +19,7 @@ async function main(): Promise<void>{
             
 
             if (works) {
-                execSync(`cd ${__dirname} && git add . && git commit -m "fix: ${id} works now" && git push -u origin main`);
+                execSync(`cd `)
             }
         })
 
@@ -33,5 +33,4 @@ async function main(): Promise<void>{
 main().then(() => {
     console.log("Parse complete");
 }).catch((err) => {
-    console.error(err);
-})
+    console.

@@ -126,30 +126,24 @@
         // Helper to check if a URL is relative
         function isRelative(url) {
             const result = typeof url === 'string' && !/^(?:[a-z]+:)?\/\//i.test(url) && url[0] !== '/';
-            console.log('isRelative:', url, result);
             return result;
         }
 
         // Patch fetch
         var origFetch = window.fetch;
         window.fetch = async function (input, init) {
-            console.log('fetch called with:', input, init);
             if (typeof input === 'string' && isRelative(input)) {
                 input = CDN_BASE + input;
-                console.log('fetch input patched to:', input);
             } else if (input && input.url && isRelative(input.url)) {
                 input = new Request(CDN_BASE + input.url, input);
-                console.log('fetch Request input patched to:', input.url);
             }
             const response = origFetch.call(this, input, init);
             const res = await response;
 
-            console.log('fetch response status:', res.status);
 
             if (res.status === 403) {
                 const body = await res.text();
                 const toLargeText = `File size exceeded the configured limit of 20 MB`;
-                console.log('fetch 403 body:', body);
                 if (body.includes(toLargeText)) {
                     console.log('fetch: file too large, merging parts for', input instanceof Request ? input.url : input);
                     try {
@@ -178,10 +172,8 @@
             var _responseTypeSet = false;
 
             xhr.open = function (method, url) {
-                console.log('XHR open:', method, url);
                 if (isRelative(url)) {
                     url = CDN_BASE + url;
-                    console.log('XHR url patched to:', url);
                 }
                 _url = url;
                 return origOpen.apply(xhr, arguments);
@@ -207,7 +199,6 @@
             });
 
             xhr.send = function () {
-                console.log('XHR send with responseType:', _originalResponseType);
 
                 var origOnReadyStateChange = xhr.onreadystatechange;
                 var origOnLoad = xhr.onload;
@@ -215,10 +206,7 @@
 
                 xhr.onreadystatechange = function () {
                     if (xhr.readyState === 4) {
-                        console.log('XHR readyState 4, status:', xhr.status, 'responseType:', _originalResponseType);
                         if (xhr.status === 403) {
-                            console.log('XHR: 403 error detected, checking if file is too large');
-
                             // Prevent original callbacks from firing during our check
                             xhr.onreadystatechange = null;
                             xhr.onload = null;
@@ -229,13 +217,9 @@
                                 if (response.status === 403) {
                                     return response.text().then(body => {
                                         const toLargeText = `File size exceeded the configured limit of 20 MB`;
-                                        console.log('XHR 403 body check:', body.includes(toLargeText));
 
                                         if (body.includes(toLargeText)) {
-                                            console.log('XHR: file too large, merging parts for', _url);
                                             return merge(_url).then(mergedRes => {
-                                                console.log('Merge complete, setting response');
-
                                                 if (_originalResponseType === 'arraybuffer') {
                                                     return mergedRes.arrayBuffer().then(buffer => {
                                                         // Mock successful response
@@ -359,7 +343,6 @@
         window.XMLHttpRequest = PatchedXHR;
 
         async function merge(filename) {
-            console.log('merge called for:', filename);
 
             const BATCH_SIZE = 3;
             let allParts = [];
@@ -405,7 +388,6 @@
                 }
 
                 if (foundInBatch < BATCH_SIZE) {
-                    console.log(`Found ${foundInBatch} parts in batch, stopping discovery`);
                     break;
                 }
 
@@ -416,7 +398,6 @@
                 throw new Error('No parts found for merging');
             }
 
-            console.log('Available parts:', availableParts);
 
             // Now fetch all the parts we discovered in batches
             for (let i = 0; i < availableParts.length; i += BATCH_SIZE) {
@@ -450,13 +431,11 @@
                     );
                 }
 
-                console.log(`Fetching data batch with parts:`, batchParts);
                 const batchResults = await Promise.all(batchPromises);
 
                 // Process batch results
                 for (const result of batchResults) {
                     if (result.success) {
-                        console.log(`Part ${result.index} fetched`);
                         allParts.push({
                             index: result.index,
                             data: result.data
@@ -471,7 +450,6 @@
             // Sort parts by index to ensure correct order
             allParts.sort((a, b) => a.index - b.index);
 
-            console.log(`Total parts fetched: ${allParts.length}`);
             const totalSize = allParts.reduce((acc, part) => acc + part.data.byteLength, 0);
             const combinedData = new Uint8Array(totalSize);
 
@@ -481,7 +459,6 @@
                 offset += part.data.byteLength;
             }
 
-            console.log('merge: combined data length:', combinedData.length);
             return new Response(combinedData);
         }
 
@@ -583,7 +560,6 @@
                     // Create data URL instead of blob
                     const encodedWorkerCode = encodeURIComponent(workerCode);
                     const dataURL = `data:application/javascript,${encodedWorkerCode}`;
-                    console.log('Worker data URL created');
                     return new OrigWorker(dataURL, options);
                 }
                 return new OrigWorker(scriptURL, options);
