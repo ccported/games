@@ -15,11 +15,13 @@ async function main(): Promise<void>{
         const rowFiltered = rows.map(row => row.trim()).filter(row => row.length > 0);
         rowFiltered.forEach((row) => {
             const [id, check, ...error] = row.split(' ');
-            let works = check === "[x]" ? true : false;
-            
+            let works = check === "[x]" ? false : true;
 
             if (works) {
-                execSync(`cd `)
+                const pathToParse = path.join(__dirname, id);
+                console.log(pathToParse, check, id);
+                execSync(`cd ${path.join(__dirname, id)} && aws s3 cp index.html s3://ccportedgames/${id}/index.html`, { stdio: 'inherit' });
+
             }
         })
 
@@ -33,4 +35,5 @@ async function main(): Promise<void>{
 main().then(() => {
     console.log("Parse complete");
 }).catch((err) => {
-    console.
+    console.error(err);
+})
