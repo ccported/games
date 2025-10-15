@@ -1,0 +1,86 @@
+{
+    "name": "SpelunkyClassicHDhtml5",
+    "version": "1.2.2",
+    "description": "Platform video game. HTML5 version.",
+    "main": "www/index.js",
+    "repository": "https://github.com/yancharkin/${name}",
+    "author": "Ivan Yancharkin <yancharkin@gmail.com>",
+    "license": "Custom",
+    "private": true,
+    "devDependencies": {
+        "cordova": "^12.0.0",
+        "cordova-android": "^14.0.1",
+        "electron": "36.5.0",
+        "electron-builder": "26.0.12"
+    },
+    "cordova": {
+        "platforms": [
+            "android"
+        ]
+    },
+    "build": {
+        "appId": "com.github.yancharkin.${name}",
+        "productName": "Spelunky Classic HD HTML5",
+        "artifactName": "spelunky_classic_hd_html5-${os}-${arch}.${ext}",
+        "directories": {
+            "app": "www",
+            "buildResources": "resources"
+        },
+        "linux": {
+            "executableName": "spelunky_classic_hd_html5",
+            "icon": "linux-icons",
+            "category": "Game",
+            "target": [
+                {
+                    "target": "AppImage",
+                    "arch": [
+                        "x64",
+                        "armv7l",
+                        "arm64"
+                    ]
+                }
+            ]
+        },
+        "mac": {
+            "category": "public.app-category.games",
+            "target": [
+                {
+                    "target": "zip",
+                    "arch": [
+                        "x64",
+                        "arm64"
+                    ]
+                }
+            ]
+        },
+        "win": {
+            "target": [
+                {
+                    "target": "zip",
+                    "arch": [
+                        "ia32",
+                        "x64"
+                    ]
+                }
+            ]
+        }
+    },
+    "scripts": {
+        "pwa-for-upload": "yarn pwa-prepare && sed -i -e 's/\"\\//\"\\/SpelunkyClassicHDhtml5\\//' www/manifest.json www/serviceWorker.js && [ ! -d ./dist/spelunky_classic_hd_html5-pwa ] || rm -r ./dist/spelunky_classic_hd_html5-pwa && mkdir -p ./dist && mv ./www ./dist/spelunky_classic_hd_html5-pwa",
+        "pwa-prepare": "yarn prepare && cp -r ./src/pwa/* ./www/ && yarn pwa-on",
+        "pwa-check": "cat ./www/index.html | tr '\n' 'F' | grep '<!--F    <link rel=\"manifest\"' > /dev/null",
+        "pwa-on": "yarn pwa-check && sed -i -z -e 's/<!--\\n    <link/<link/ ; s/manifest.json\">\\n    -->/manifest.json\">/ ; s/<!--\\n    <script>\\n/<script>\\n/ ; s/<\\/script>\\n    -->/<\\/script>/' ./www/index.html",
+        "prepare": "[ ! -d ./www ] || rm -r ./www && mkdir -p ./www && cp -r ./src/* ./www/ && rm -r ./www/electron ./www/pwa",
+        "serve-src": "cd ./src && python -m http.server & google-chrome-stable --incognito --start-fullscreen --auto-open-devtools-for-tabs --simulate-outdated-no-au='Tue, 31 Dec 2099 23:59:59 GMT' http://localhost:8000/",
+        "serve-pwa": "yarn pwa-prepare && cd ./www && python -m http.server & google-chrome-stable --incognito --start-fullscreen --auto-open-devtools-for-tabs --simulate-outdated-no-au='Tue, 31 Dec 2099 23:59:59 GMT' http://localhost:8000/",
+        "electron-prepare": "yarn prepare && cp ./src/electron/* ./www/ && cp ./resources/linux-icons/256x256.png ./www/ && touch ./www/yarn.lock",
+        "electron-start": "yarn electron-prepare && electron ./www",
+        "electron-build-linux": "yarn electron-prepare && electron-builder -l",
+        "electron-build-macos": "yarn electron-prepare && electron-builder -m",
+        "electron-build-win": "yarn electron-prepare && electron-builder -w",
+        "electron-build-all": "yarn electron-prepare && electron-builder -mlw",
+        "cordova-build-android": "yarn prepare && cordova build android --release --buildConfig='../../cordovaBuildConfig.json' && mkdir -p dist && cp platforms/android/app/build/outputs/apk/release/app-release.apk dist/spelunky_classic_hd_html5-android.apk",
+        "build-all": "yarn electron-prepare && electron-builder -mlw && yarn cordova-build-android && yarn pwa-for-upload && yarn dist-clean",
+        "dist-clean": "rm -r ./dist/*unpacked ./dist/mac* ./dist/*.blockmap ./dist/*.yml ./dist/*.yaml"
+    }
+}
