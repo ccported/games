@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en-us">
   <head>
-    <base href="https://cdn.jsdelivr.net/gh/genizy/web-port@1102f068fff0083d2a5ed979ebac6425540d78a5/undertale/" />
+    <base href="https://cdn.jsdelivr.net/gh/ccported/games@71664f6d09be2bafa9405fd709e30c247e4bd126/game_f23f_aa7b2677e4e1c8/">
     <meta charset="utf-8" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta
@@ -349,33 +349,40 @@
     <script>
       function mergeFiles(fileParts) {
         return new Promise((resolve, reject) => {
-          let buffers = []
+          let buffers = new Array(fileParts.length)
+          let completedParts = 0
 
-          function fetchPart(index) {
-            if (index >= fileParts.length) {
-              let mergedBlob = new Blob(buffers)
-              let mergedFileUrl = URL.createObjectURL(mergedBlob)
-              resolve(mergedFileUrl)
-              return
-            }
-            fetch(fileParts[index])
-              .then((response) => {
-                if (!response.ok) {
-                  throw new Error('Failed to load part ' + (index + 1) + ': HTTP ' + response.status)
-                }
-                return response.arrayBuffer()
-              })
-              .then((data) => {
-                console.log('Loaded part', index + 1, 'size:', data.byteLength)
-                buffers.push(data)
-                document.getElementById('progress').value = ((index + 1) / fileParts.length) * 100
-                document.getElementById('status').innerText =
-                  'Downloading... ' + Math.round(((index + 1) / fileParts.length) * 100) + '%'
-                fetchPart(index + 1)
-              })
-              .catch(reject)
+          function updateProgress() {
+        const progress = (completedParts / fileParts.length) * 100
+        document.getElementById('progress').value = progress
+        document.getElementById('status').innerText = 'Downloading... ' + Math.round(progress) + '%'
           }
-          fetchPart(0)
+
+          // Fetch all parts concurrently
+          const fetchPromises = fileParts.map((part, index) => {
+        return fetch(part)
+          .then((response) => {
+            if (!response.ok) {
+          throw new Error('Failed to load part ' + (index + 1) + ': HTTP ' + response.status)
+            }
+            return response.arrayBuffer()
+          })
+          .then((data) => {
+            console.log('Loaded part', index + 1, 'size:', data.byteLength)
+            buffers[index] = data
+            completedParts++
+            updateProgress()
+          })
+          })
+
+          // Wait for all parts to complete, then merge in order
+          Promise.all(fetchPromises)
+        .then(() => {
+          let mergedBlob = new Blob(buffers)
+          let mergedFileUrl = URL.createObjectURL(mergedBlob)
+          resolve(mergedFileUrl)
+        })
+        .catch(reject)
         })
       }
 

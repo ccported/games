@@ -1369,3 +1369,8 @@ function notify_config_change() {
 
   wallpaper_update_config(JSON.stringify(wallpaperConfig));
 }
+
+
+function isMultiplayer() {
+  return false;
+}
