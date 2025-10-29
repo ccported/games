@@ -1,0 +1,44 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        iframe {
+            border: none;
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+        const gameID = prompt("game id");
+
+        const iframe = document.createElement("iframe");
+        iframe.src = `http://localhost:8080/${gameID}/index.html`;
+        document.body.appendChild(iframe);
+        setTimeout(() => {
+             iframe.blur();
+            iframe.focus();
+        }, 3000)
+    </script>
+</body>
+
+</html>

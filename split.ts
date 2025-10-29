@@ -28,19 +28,13 @@ async function split(filename: string, partSize: number = 19): Promise<void> {
     }
 }
 
-
-
-
-
-
-function handleGame(gameID: string): string[] {
-    const gamePath = path.join(__dirname, gameID);
+function collectFiles(folderPath: string): string[] {
     const files: string[] = [];
-    
-    function readFolder(folderPath: string) {
-        const items = fs.readdirSync(folderPath);
+
+    function readFolder(folder: string) {
+        const items = fs.readdirSync(folder);
         for (const item of items) {
-            const itemPath = path.join(folderPath, item);
+            const itemPath = path.join(folder, item);
             const stats = fs.statSync(itemPath);
             if (stats.isDirectory()) {
                 readFolder(itemPath);
@@ -50,38 +44,67 @@ function handleGame(gameID: string): string[] {
         }
     }
 
-    readFolder(gamePath);
+    readFolder(folderPath);
     return files;
 }
 
-
-function getAllGames() {
+function getAllGames(): string[] {
     const gamesDir = __dirname;
-    const games = fs.readdirSync(gamesDir).filter(item => {
-        const itemPath = path.join(gamesDir, item);
-        return fs.statSync(itemPath).isDirectory() && item.startsWith('game_');
-    });
+    const games = fs.readdirSync(gamesDir)
+        .map(item => path.join(gamesDir, item))
+        .filter(itemPath => fs.statSync(itemPath).isDirectory() && path.basename(itemPath).startsWith('game_'));
     return games;
 }
 
+async function splitFilesList(files: string[]) {
+    for (const file of files) {
+        const base = path.basename(file);
+        if (/\.part\d+$/.test(base)) continue; // Skip already split files
+        if (fs.statSync(file).size <= 19 * 1024 * 1024) continue; // Skip small files
+        console.log(`Splitting file: ${file}`);
+        await split(file);
+    }
+}
 
+async function splitAllGamesOrSingle() {
+    const arg = process.argv[2];
 
-async function splitAllGames() {
-    const games = getAllGames();
-    for (const game of games) {
-        const files = handleGame(game);
-        for (const file of files) {
-            if (file.split('.').pop()?.startsWith('part')) continue; // Skip already split files
-            if (fs.statSync(file).size <= 19 * 1024 * 1024) continue; // Skip small files
-            console.log(`Splitting file: ${file}`);
-            await split(file);
+    if (arg) {
+        // Resolve provided path: prefer absolute, then relative to script dir, then CWD
+        let providedPath = arg;
+        if (!path.isAbsolute(providedPath)) {
+            const fromScript = path.join(__dirname, providedPath);
+            const fromCwd = path.join(process.cwd(), providedPath);
+            if (fs.existsSync(fromScript)) providedPath = fromScript;
+            else if (fs.existsSync(fromCwd)) providedPath = fromCwd;
+            else providedPath = providedPath; // keep as-is and let exists check fail below
+        }
+
+        if (!fs.existsSync(providedPath)) {
+            throw new Error(`Path does not exist: ${arg}`);
+        }
+
+        const stats = fs.statSync(providedPath);
+        if (stats.isDirectory()) {
+            const files = collectFiles(providedPath);
+            await splitFilesList(files);
+            return;
+        } else if (stats.isFile()) {
+            await splitFilesList([providedPath]);
+            return;
+        } else {
+            throw new Error(`Unsupported path type: ${arg}`);
+        }
+    } else {
+        const games = getAllGames();
+        for (const gameDir of games) {
+            const files = collectFiles(gameDir);
+            await splitFilesList(files);
         }
     }
 }
 
-
-
-splitAllGames().then(() => {
+splitAllGamesOrSingle().then(() => {
     console.log("All games processed.");
 }).catch(err => {
     console.error("Error processing games:", err);
