@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link rel ="stylesheet" href = "./styles.css" >
+    <meta name="viewport" content="width=device-width">
+    <title>Miner Cat 4</title>
+</head>
+<body>
+    <script>
+        (async () => {
+            const source = await fetch("source.ccpgame");
+            if (!source.ok) return;
+
+            const text = await source.text();
+
+            const iframe = document.createElement("iframe");
+            iframe.style.width = "100%";
+            iframe.style.height = "100vh";
+
+            // Append FIRST
+            document.body.appendChild(iframe);
+
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            iframeDoc.open();
+            iframeDoc.write(text);
+            iframeDoc.close();
+        })();
+
+    </script>
+</body>
+
+</html>
