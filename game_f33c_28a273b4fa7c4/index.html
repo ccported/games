@@ -2,7 +2,8 @@
     <base href="https://cdn.jsdelivr.net/gh/ccported/games@68a06c5354670671f783001244065d1b45225074/game_f33c_28a273b4fa7c4/">
 <script>
     (function () {
-        // V6
+        console.log("V7")
+        // V7
         var base = document.querySelector('base');
         var CDN_BASE = base ? base.href : '';
         if (!CDN_BASE) {
@@ -207,130 +208,76 @@
                 var origOnError = xhr.onerror;
 
                 xhr.onreadystatechange = function () {
-                    if (xhr.readyState === 4) {
-                        if (xhr.status === 403) {
-                            // Prevent original callbacks from firing during our check
-                            xhr.onreadystatechange = null;
-                            xhr.onload = null;
-                            xhr.onerror = null;
+                    if (xhr.readyState === 4 && xhr.status === 403) {
+                        xhr.onreadystatechange = null;
+                        xhr.onload = null;
+                        xhr.onerror = null;
 
-                            // Make a separate fetch request to check the error message using original fetch
-                            origFetch(_url).then(response => {
-                                if (response.status === 403) {
-                                    return response.text().then(body => {
-                                        const toLargeText = `File size exceeded the configured limit of 20 MB`;
+                        origFetch(_url).then(response => {
+                            if (response.status === 403) {
+                                return response.text().then(body => {
+                                    const toLargeText = `File size exceeded the configured limit of 20 MB`;
 
-                                        if (body.includes(toLargeText)) {
-                                            return merge(_url).then(mergedRes => {
-                                                if (_originalResponseType === 'arraybuffer') {
-                                                    return mergedRes.arrayBuffer().then(buffer => {
-                                                        // Mock successful response
-                                                        Object.defineProperty(xhr, 'status', {
-                                                            value: 200,
-                                                            configurable: true,
-                                                            writable: true
-                                                        });
-                                                        Object.defineProperty(xhr, 'response', {
-                                                            value: buffer,
-                                                            configurable: true,
-                                                            writable: true
-                                                        });
-                                                        Object.defineProperty(xhr, 'readyState', {
-                                                            value: 4,
-                                                            configurable: true,
-                                                            writable: true
-                                                        });
-
-                                                        // Restore and trigger callbacks
-                                                        xhr.onreadystatechange = origOnReadyStateChange;
-                                                        xhr.onload = origOnLoad;
-                                                        xhr.onerror = origOnError;
-
-                                                        if (origOnLoad) {
-                                                            setTimeout(() => origOnLoad.call(xhr), 0);
-                                                        }
-                                                        if (origOnReadyStateChange) {
-                                                            setTimeout(() => origOnReadyStateChange.call(xhr), 0);
-                                                        }
-                                                    });
-                                                } else {
-                                                    return mergedRes.text().then(text => {
-                                                        Object.defineProperty(xhr, 'status', {
-                                                            value: 200,
-                                                            configurable: true,
-                                                            writable: true
-                                                        });
-                                                        Object.defineProperty(xhr, 'response', {
-                                                            value: text,
-                                                            configurable: true,
-                                                            writable: true
-                                                        });
-                                                        Object.defineProperty(xhr, 'responseText', {
-                                                            value: text,
-                                                            configurable: true,
-                                                            writable: true
-                                                        });
-                                                        Object.defineProperty(xhr, 'readyState', {
-                                                            value: 4,
-                                                            configurable: true,
-                                                            writable: true
-                                                        });
-
-                                                        // Restore and trigger callbacks
-                                                        xhr.onreadystatechange = origOnReadyStateChange;
-                                                        xhr.onload = origOnLoad;
-                                                        xhr.onerror = origOnError;
-
-                                                        if (origOnLoad) {
-                                                            setTimeout(() => origOnLoad.call(xhr), 0);
-                                                        }
-                                                        if (origOnReadyStateChange) {
-                                                            setTimeout(() => origOnReadyStateChange.call(xhr), 0);
-                                                        }
-                                                    });
+                                    if (body.includes(toLargeText)) {
+                                        return merge(_url).then(mergedRes => {
+                                            return mergedRes.arrayBuffer().then(buffer => {
+                                                // Re-issue as a blob URL request so the browser provides
+                                                // a genuine XHR response — no property mocking needed.
+                                                const blobURL = URL.createObjectURL(new Blob([buffer]));
+                                                origOpen.call(xhr, 'GET', blobURL);
+                                                if (_responseTypeSet) {
+                                                    try {
+                                                        Object.getPrototypeOf(xhr).constructor.prototype
+                                                            .__lookupSetter__('responseType').call(xhr, _originalResponseType);
+                                                    } catch (e) {
+                                                        xhr.__proto__.responseType = _originalResponseType;
+                                                    }
                                                 }
-                                            }).catch(mergeError => {
-                                                console.error('Merge failed:', mergeError);
-                                                // Restore callbacks and let the original 403 error through
-                                                xhr.onreadystatechange = origOnReadyStateChange;
+                                                xhr.onreadystatechange = function () {
+                                                    if (xhr.readyState === 4) URL.revokeObjectURL(blobURL);
+                                                    if (origOnReadyStateChange) origOnReadyStateChange.call(xhr);
+                                                };
                                                 xhr.onload = origOnLoad;
                                                 xhr.onerror = origOnError;
-                                                if (origOnReadyStateChange) {
-                                                    setTimeout(() => origOnReadyStateChange.call(xhr), 0);
-                                                }
+                                                origSend.call(xhr);
                                             });
-                                        } else {
-                                            // Not a file size error, restore original callbacks and let it fail normally
+                                        }).catch(mergeError => {
+                                            console.error('Merge failed:', mergeError);
                                             xhr.onreadystatechange = origOnReadyStateChange;
                                             xhr.onload = origOnLoad;
                                             xhr.onerror = origOnError;
                                             if (origOnReadyStateChange) {
                                                 setTimeout(() => origOnReadyStateChange.call(xhr), 0);
                                             }
+                                        });
+                                    } else {
+                                        xhr.onreadystatechange = origOnReadyStateChange;
+                                        xhr.onload = origOnLoad;
+                                        xhr.onerror = origOnError;
+                                        if (origOnReadyStateChange) {
+                                            setTimeout(() => origOnReadyStateChange.call(xhr), 0);
                                         }
-                                    });
-                                } else {
-                                    // Shouldn't happen, but restore callbacks
-                                    xhr.onreadystatechange = origOnReadyStateChange;
-                                    xhr.onload = origOnLoad;
-                                    xhr.onerror = origOnError;
-                                    if (origOnReadyStateChange) {
-                                        setTimeout(() => origOnReadyStateChange.call(xhr), 0);
                                     }
-                                }
-                            }).catch(error => {
-                                console.error('Error checking 403 response:', error);
-                                // Restore callbacks and trigger error
+                                });
+                            } else {
                                 xhr.onreadystatechange = origOnReadyStateChange;
                                 xhr.onload = origOnLoad;
                                 xhr.onerror = origOnError;
-                                if (origOnError) {
-                                    setTimeout(() => origOnError.call(xhr), 0);
+                                if (origOnReadyStateChange) {
+                                    setTimeout(() => origOnReadyStateChange.call(xhr), 0);
                                 }
-                            });
+                            }
+                        }).catch(error => {
+                            console.error('Error checking 403 response:', error);
+                            xhr.onreadystatechange = origOnReadyStateChange;
+                            xhr.onload = origOnLoad;
+                            xhr.onerror = origOnError;
+                            if (origOnError) {
+                                setTimeout(() => origOnError.call(xhr), 0);
+                            }
+                        });
 
-                            return; // Don't call original callback yet
-                        }
+                        return;
                     }
 
                     if (origOnReadyStateChange) origOnReadyStateChange.call(xhr);
@@ -452,11 +399,15 @@
             // Sort parts by index to ensure correct order
             allParts.sort((a, b) => a.index - b.index);
 
-            const totalSize = allParts.reduce((acc, part) => acc + part.data.byteLength, 0);
+            const totalSize = allParts.reduce((acc, part) => acc + (part.data ? part.data.byteLength : 0), 0);
+            if (!totalSize || totalSize <= 0) {
+                throw new Error('Invalid total size for merged parts');
+            }
             const combinedData = new Uint8Array(totalSize);
 
             let offset = 0;
             for (const part of allParts) {
+                
                 combinedData.set(new Uint8Array(part.data), offset);
                 offset += part.data.byteLength;
             }
@@ -585,6 +536,67 @@
     <script src="TemplateData/UnityProgress.js"></script>
     <script src="Build/UnityLoader2019.js"></script>
     <script>
+        // Override downloadJobMulti to fetch .partN files directly instead of
+        // the large .00N files. The large pieces (~22.5MB) exceed jsDelivr's 20MB
+        // limit and the 403 body text varies by CDN edge, making merge-on-403
+        // unreliable. The .partN files are <20MB and served as 200 OK.
+        UnityLoader.downloadJobMulti = async function(e, t) {
+            var allFile = new Uint8Array(e.size);
+            for (var i = 0; i < e.totalFile; i++) {
+                var baseUrl = t.parameters.url + '.00' + i;
+                var parts = [];
+                var partIdx = 1;
+                while (true) {
+                    var r = await fetch(baseUrl + '.part' + partIdx);
+                    if (!r.ok) break;
+                    parts.push(await r.arrayBuffer());
+                    partIdx++;
+                }
+                if (parts.length === 0) {
+                    // No .partN files — try the piece directly (if small enough)
+                    var r = await fetch(baseUrl);
+                    if (r.ok) parts.push(await r.arrayBuffer());
+                }
+                var pieceOffset = e.split_size * i;
+                var off = 0;
+                for (var p of parts) {
+                    allFile.set(new Uint8Array(p), pieceOffset + off);
+                    off += p.byteLength;
+                }
+                console.log('[DH] piece', i, ':', parts.length, 'parts,', off, 'bytes at offset', pieceOffset);
+            }
+            console.log('[DH] allFile ready, first bytes:', allFile[0], allFile[1], '(want 31 139)');
+
+            if (typeof DecompressionStream !== 'undefined') {
+                try {
+                    var ds = new DecompressionStream('gzip');
+                    var writer = ds.writable.getWriter();
+                    var reader = ds.readable.getReader();
+                    writer.write(allFile);
+                    writer.close();
+                    var chunks = [], total = 0;
+                    while (true) {
+                        var chunk = await reader.read();
+                        if (chunk.done) break;
+                        chunks.push(chunk.value);
+                        total += chunk.value.byteLength;
+                    }
+                    var decompressed = new Uint8Array(total);
+                    var doff = 0;
+                    for (var c of chunks) { decompressed.set(c, doff); doff += c.byteLength; }
+                    console.log('[DH] decompressed', total, 'bytes');
+                    t.complete(decompressed);
+                    return;
+                } catch (err) {
+                    console.error('[DH] DecompressionStream failed:', err);
+                }
+            }
+
+            UnityLoader.Compression.decompress(allFile, function(decompressed) {
+                t.complete(decompressed);
+            });
+        };
+
         var gameInstance = UnityLoader.instantiate(
             "gameContainer",
             "Build/drift-hunters.json",
